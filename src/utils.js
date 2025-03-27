@@ -71,3 +71,40 @@ export function getImageInfo(imgUrl) {
     }
   })
 }
+
+/**
+ * 将十六进制的颜色转为rgba
+ * @param hex 颜色的十六进制
+ * @param opacity 颜色的不透明度
+*/
+export const bgColor = (hex, opacity = 0.1) => {
+  if (hex) {
+    if(hex.length === 7) {
+      return 
+        'rgba(' +
+        parseInt('0x' + hex.slice(1, 3)) +
+        ',' +
+        parseInt('0x' + hex.slice(3, 5)) +
+        ',' +
+        parseInt('0x' + hex.slice(5, 7)) +
+        ',' +
+        opacity +
+        ')'
+    }else if(hex.length === 4) {
+      return (
+        'rgba(' +
+        parseInt('0x' + hex.slice(1, 2)+hex.slice(1, 2)) +
+        ',' +
+        parseInt('0x' + hex.slice(2, 3)+hex.slice(2, 3)) +
+        ',' +
+        parseInt('0x' + hex.slice(3, 4)+hex.slice(3, 4)) +
+        ',' +
+        opacity +
+        ')'
+      )
+    }
+    
+  } else {
+    return 'rgba(0,0,0,0.1)'
+  }
+}

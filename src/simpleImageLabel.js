@@ -5,7 +5,8 @@ import {
   isEqual,
   percentOrPixelToDecimal,
   decimalToPercent,
-  getImageInfo
+  getImageInfo,
+  bgColor
 } from './utils';
 
 import './style.less';
@@ -35,6 +36,7 @@ class SimpleImageLabel {
     this.$w = 0;
     this.$h = 0;
     // 8个缩放点
+    // this.resizeDotClasses = ['n', 's', 'w', 'e']; // 上，下，左，右，左上，右上，左下， 右下
     this.resizeDotClasses = ['n', 's', 'w', 'e', 'nw', 'ne', 'sw', 'se']; // 上，下，左，右，左上，右上，左下， 右下
     this.resizeDotName = null; // 当前被点击的点名称
     // 新建的label
@@ -53,11 +55,13 @@ class SimpleImageLabel {
     this.activeUuid = null;
     // 图片详情 {width} {height}
     this.imageInfo = null;
-
+    this.canvasInfo = (options.width && options.height) ? {width:options.width, height:options.height}: null;
+    //缩放倍数
+    this.scalcPic = 1;
     this.init();
   }
 
-  init() {
+  async init(){
     this.imageInfo = null;
     if (!this.labelsContainer) {
       // 初始化创建DOM元素
@@ -74,6 +78,18 @@ class SimpleImageLabel {
     if (img.src !== this.imageUrl) {
       img.src = this.imageUrl;
     }
+    if(!this.canvasInfo)
+      this.canvasInfo = await getImageInfo(this.imageUrl);
+  
+    const imageContent = this.imageLabelAreaEl.querySelector('.__simple-image-label__');
+    if (this.imageLabelAreaEl.clientWidth >= this.canvasInfo.width) {
+      this.scalcPic = width / this.imageLabelAreaEl.clientWidth;
+      imageContent.style.width = decimalToPercent(this.canvasInfo.width / this.imageLabelAreaEl.clientWidth);
+    } else {
+      this.scalcPic =1;
+      imageContent.style.width = '100%';
+    }
+
     img.onload = () => {
       this.labelAreaEvent();
       this.resizeImage();
@@ -85,6 +101,7 @@ class SimpleImageLabel {
     }
     this.labelsContainer = document.getElementById('labelsContainer');
     this.initLabelElement();
+    
   }
 
   // 根据图片进行缩放宽度，如果图片宽度小于当前可视区域则__simple-image-label__宽度就 = 图片宽度，否则为100%
@@ -95,9 +112,11 @@ class SimpleImageLabel {
       } = this.imageInfo;
       const imageContent = this.imageLabelAreaEl.querySelector('.__simple-image-label__');
       if (this.imageLabelAreaEl.clientWidth >= width) {
+        this.scalcPic = width / this.imageLabelAreaEl.clientWidth;
         imageContent.style.width = decimalToPercent(width / this.imageLabelAreaEl.clientWidth);
       } else {
         imageContent.style.width = '100%';
+        this.scalcPic = 1;
       }
       this.$w = this.labelsContainer.clientWidth;
       this.$h = this.labelsContainer.clientHeight;
@@ -114,6 +133,12 @@ class SimpleImageLabel {
   }
 
   initLabelElement() {
+    // for (let i = 0; i < this.labels.length; i++) {
+    //   if (!this.labels[i].uuid) {
+    //     this.labels[i].uuid = uuidGenerate();
+    //   }
+    //   this.createLabelElement(this.labels[i]);
+    // }
     // 如果有传入labels
     this.labels.forEach(label => {
       // 初始化uuid
@@ -123,6 +148,7 @@ class SimpleImageLabel {
       this.createLabelElement(label);
     });
   }
+  
 
   // 事件
   labelAreaEvent() {
@@ -312,16 +338,45 @@ class SimpleImageLabel {
     const labelElement = document.createElement('div');
     labelElement.className = 'label-item';
     labelElement.id = uuid;
-    labelElement.style.left = decimalToPercent(x);
-    labelElement.style.top = decimalToPercent(y);
-    labelElement.style.width = decimalToPercent(width);
-    labelElement.style.height = decimalToPercent(height);
+    if(this.canvasInfo){
+      const w = this.canvasInfo.width;
+      const h = this.canvasInfo.height;
+      const left =  Math.ceil(x*w - width*w/2.00);
+      const top = Math.ceil(y*h - height*h/2.00);
+      if(this.scalcPic!==1){
+        labelElement.style.left = `${Math.ceil(left*this.scalcPic)}px`;
+        labelElement.style.top = `${Math.ceil(top*this.scalcPic)}px`;
+      }else{
+        labelElement.style.left = `${left}px`;
+        labelElement.style.top = `${top}px`;
+      }
+      
+    }else{
+      if(this.scalcPic!==1){
+        labelElement.style.left = decimalToPercent(x*this.scalcPic);
+        labelElement.style.top = decimalToPercent(y*this.scalcPic);
+      }else{
+        labelElement.style.left = decimalToPercent(x);
+        labelElement.style.top = decimalToPercent(y);
+      }
+      
+    }
+    if(this.scalcPic!==1){
+      labelElement.style.width = decimalToPercent(width*this.scalcPic);
+      labelElement.style.height = decimalToPercent(height*this.scalcPic);
+    }else{
+      labelElement.style.width = decimalToPercent(width);
+      labelElement.style.height = decimalToPercent(height);
+    }
+    
     labelElement.style.position = 'absolute';
     labelElement.style.border = '1px solid rgb(58,238,121)';
     labelElement.style.backgroundColor = 'rgba(191,191,191,.5)';
     labelElement.style.zIndex = this.labels.length;
     if (color) {
       labelElement.style.borderColor = color;
+      // labelElement.style.backgroundColor = color;
+      // labelElement.style.opacity = 0.2;
     }
     // 设置data-uuid,可以通过e.target.uuid获取uuid的值
     // labelElement.setAttribute('data-uuid', uuid)
@@ -457,6 +512,39 @@ class SimpleImageLabel {
     }
   }
 
+  // 放大图片
+  zoomingImage(zoomPle=1){
+    this.imageInfo = {
+        width: this.canvasInfo.width*zoomPle,
+        height: this.canvasInfo.height*zoomPle
+       }
+    const imageContent = this.imageLabelAreaEl.querySelector('.__simple-image-label__');
+    imageContent.style.width = `${this.imageInfo.width}px`
+    imageContent.style.height = `${this.imageInfo.height}px`
+    const labels = this.getLabels()
+    labels.forEach(label => {
+      const uuid = label.uuid;
+      const labelElement = document.getElementById(uuid);
+      // console.log(labelElement.style.top*zoomPle, labelElement.style.top)
+      // const topStr = labelElement.style.top
+      // const top = topStr.substring(0, topStr.length-2)
+      // const leftStr = labelElement.style.left 
+      // const left = leftStr.substring(0, leftStr.length-2)
+      const x = label.x;
+      const y = label.y;
+      const w = this.imageInfo.width;
+      const h = this.imageInfo.height;
+      const width = label.width;
+      const height = label.height;
+      const left =  Math.ceil(x*w - width*w/2.00);
+      const top = Math.ceil(y*h - height*h/2.00);
+      labelElement.style.top = `${top}px`;
+      labelElement.style.left =  `${left}px`;
+      // label.style.width = `${label.style.width*zoomPle}px`
+      // label.style.height = `${label.style.height*zoomPle}px`
+    })
+  }
+
   // 删除所有label
   removeAllLabels() {
     const labels = document.querySelectorAll('.label-item');
@@ -473,6 +561,7 @@ class SimpleImageLabel {
     // 如果存在labelElements，则移除className为label-active
     if (labelElements.length) {
       labelElements.forEach(item => {
+        item.style.backgroundColor = 'rgba(191,191,191,.5)';
         item.classList.remove('label-item-active');
       });
     }
@@ -485,7 +574,11 @@ class SimpleImageLabel {
       return;
     }
     // 设置当前label的激活状态
+    
     label.classList.add('label-item-active');
+    if(this.getLabelByUuid(uuid).color){
+      label.style.backgroundColor = bgColor(this.getLabelByUuid(uuid).color, 0.5)+' !important';
+    }
     if (this.labelClick && typeof this.labelClick === 'function') {
       this.labelClick(this.getLabelByUuid(uuid));
     }
@@ -665,6 +758,10 @@ class SimpleImageLabel {
   setReadOnly(readOnly) {
     this.readOnly = readOnly;
     this.labelAreaEvent();
+  }
+
+  getReadOnly() {
+    return this.readOnly;
   }
 
 }

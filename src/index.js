@@ -1,4 +1,5 @@
-import SimpleImageLabel from '../libs/simpleImageLabel'
+// import SimpleImageLabel from '../libs/simpleImageLabel'
+import SimpleImageLabel from './simpleImageLabel'
 // const SimpleImageLabel = require('../libs/simpleImageLabel').default
 import img from '../static/1.jpg'
 import img2 from '../static/2.jpg'
@@ -14,19 +15,34 @@ const readOnlyBtn = document.getElementById('read-only-btn')
 
 const initLabels = [{
   color: 'red',
-  height: 0.251473,
-  name: 'House',
-  width: 0.200318,
-  x: 0.0309278,
-  y: 0.532417,
-}, {
-  x: 0.588202,
-  y: 0.42436100000000004,
-  width: 0.37571599999999994,
-  height: 0.453832,
-  name: 'Tree',
-  color: 'yellow'
+  height: 0.0105402,
+  name: 'SBac',
+  width: 0.0105402,
+  x: 0.101449,
+  y: 0.645586,
+},{
+  color: 'green',
+  height: 0.00922266,
+  name: 'SBac',
+  width: 0.0105402,
+  x: 0.640316,
+  y: 0.314229,
+},{
+  color: 'green',
+  height: 0.0131752,
+  name: 'SBac',
+  width: 0.0118577,
+  x: 0.613307,
+  y: 0.624506,
+},{
+  color: 'yellow',
+  height: 0.139657,
+  name: 'SBac',
+  width: 0.252964,
+  x: 0.41502,
+  y: 0.0764163,
 }]
+
 
 const nextLabels = [{
   x: 0.46949199999999996,
@@ -67,8 +83,10 @@ const nextLabels = [{
 let currentLabel = null
 const imageLabelContent = new SimpleImageLabel({
   el: 'imageLabelArea',
-  imageUrl: img,
+  imageUrl: "http://localhost:48080/admin-api/infra/file/29/get/detect/T2503221701/source/22c7f4a6336290335b0e1c3ddfcc84fc5182aaa691b248e54b840c258cb30f67.png",
   labels: initLabels,
+  height:759,
+  width: 759,
   contextmenu: (e) => {
 
   },
